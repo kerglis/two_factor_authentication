@@ -9,10 +9,22 @@ module TwoFactorAuthentication
 
       private
 
+      def skip_two_factor_authentication
+        @@require_two_factor_authentication = false
+      end
+
+      def require_two_factor_authentication
+        @@require_two_factor_authentication = true
+      end
+
+      def require_two_factor_authentication?
+        @@require_two_factor_authentication == true
+      end
+
       def handle_two_factor_authentication
-        unless devise_controller?
+        if !devise_controller? and require_two_factor_authentication?
           Devise.mappings.keys.flatten.any? do |scope|
-            if signed_in?(scope) and warden.session(scope)[TwoFactorAuthentication::NEED_AUTHENTICATION]
+            if signed_in?(scope) and warden.session(scope)['need_two_factor_authentication']
               handle_failed_second_factor(scope)
             end
           end
@@ -41,8 +53,9 @@ end
 module Devise
   module Controllers
     module Helpers
-      def is_fully_authenticated?
-        !session["warden.user.user.session"].try(:[], TwoFactorAuthentication::NEED_AUTHENTICATION)
+      def is_fully_authenticated?(resource_or_scope = nil)
+        scope = Devise::Mapping.find_scope!(resource_or_scope)
+        !session["warden.user.#{scope}.session"].try(:[], 'need_two_factor_authentication')
       end
     end
   end
