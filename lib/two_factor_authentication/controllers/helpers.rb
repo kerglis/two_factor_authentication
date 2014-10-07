@@ -5,25 +5,21 @@ module TwoFactorAuthentication
 
       included do
 
-        @@otp_authentication = false
-
         before_filter :handle_two_factor_authentication
 
-        def self.skip_two_factor_authentication
-          @@otp_authentication = false
-        end
+        class << self; attr_accessor :require_otp end
 
         def self.require_two_factor_authentication
-          @@otp_authentication = true
+          @require_otp = true
         end
 
       end
 
       def required_two_factor_authentication?
-        @@otp_authentication == true
+        self.class.require_otp == true
       end
 
-      private
+    private
 
       def handle_two_factor_authentication
         if !devise_controller? and required_two_factor_authentication?
